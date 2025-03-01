@@ -15,15 +15,6 @@ This is a simple hotel booking system project implemented in Python. The project
 - `Room` Class: Represents a room, containing the room number, status, and guest information.
 - `main` Function: Provides a user interaction interface.
 
-## Usage
-
-### 1. Clone the Repository
-
-Clone the project to your local machine:
-
-```bash
-git clone https://github.com/Zeze1370356156/hotel-booking-system-2025.git
-cd hotel-booking-system
 
 
 
@@ -46,12 +37,3 @@ cd hotel-booking-system
 - `Room` 类：表示房间，包含房间号、状态和客人信息。
 - `main` 函数：提供用户交互界面。
 
-## 使用方法
-
-### 1. 克隆仓库
-
-将项目克隆到本地：
-
-```bash
-git clone https://github.com/Zeze1370356156/hotel-booking-system-2025.git
-cd 酒店预约系统
