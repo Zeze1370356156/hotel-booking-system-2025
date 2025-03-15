@@ -1,7 +1,7 @@
 # hotel_booking_class.py
 
 class Hotel:
-    def init(self, name):
+    def __init__(self, name):
         self.name = name
         # Fixed price for all rooms
         self.room_price = 200
@@ -27,7 +27,7 @@ class Hotel:
         if room_number not in self.rooms:
             print(f"Room {room_number} does not exist.")
             return False
-        
+
         if self.rooms[room_number]['status'] == 'available':
             # Fixed price for booking
             payment_amount = self.room_price
@@ -45,7 +45,7 @@ class Hotel:
         if room_number not in self.rooms:
             print(f"Room {room_number} does not exist.")
             return False
-        
+
         if self.rooms[room_number]['status'] == 'booked':
             guest_name = self.rooms[room_number]['guest']
             self.rooms[room_number]['status'] = 'available'
@@ -62,7 +62,7 @@ class Hotel:
         if room_number not in self.rooms:
             print(f"Room {room_number} does not exist.")
             return False
-        
+
         if self.rooms[room_number]['status'] == 'booked':
             guest_name = self.rooms[room_number]['guest']
             # Ask for rating and review
@@ -89,6 +89,7 @@ class Hotel:
         else:
             print(f"Room {room_number} is not booked.")
             return False
+
 def main():
     # Create a hotel object
     my_hotel = Hotel("Star Hotel")
@@ -121,5 +122,5 @@ def main():
         else:
             print("Invalid option, please try again.")
 
-if name == "main":
+if __name__ == "__main__":
     main()
