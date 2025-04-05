@@ -1,0 +1,141 @@
+pip install flask flask-restx python-dotenv #安装包
+# app.py  api服务
+from flask import Flask, request, jsonify
+from flask_restx import Api, Resource, fields
+from datetime import datetime
+from functools import wraps
+
+app = Flask(__name__)
+api = Api(app, version='1.0', title='Hotel API', 
+          description='A simple Hotel Booking System API')
+
+# 命名空间
+ns = api.namespace('api', description='Hotel operations')
+
+# 数据模型
+room_model = api.model('Room', {
+    'number': fields.String(required=True, description='Room number'),
+    'status': fields.String(description='Room status'),
+    'guest': fields.String(description='Guest name'),
+    'payment': fields.Float(description='Payment amount'),
+    'rating': fields.Integer(description='Rating (1-5)'),
+    'review': fields.String(description='Guest review')
+})
+
+booking_model = api.model('Booking', {
+    'room_number': fields.String(required=True, description='Room number'),
+    'guest_name': fields.String(required=True, description='Guest name')
+})
+
+rating_model = api.model('Rating', {
+    'rating': fields.Integer(required=True, description='Rating (1-5)'),
+    'review': fields.String(description='Guest review')
+})
+
+# 模拟数据库
+hotel_data = {
+    'name': 'Star Hotel',
+    'room_price': 200,
+    'rooms': {
+        '101': {'status': 'available', 'guest': None, 'payment': None, 'rating': None, 'review': None},
+        '102': {'status': 'available', 'guest': None, 'payment': None, 'rating': None, 'review': None},
+        '103': {'status': 'available', 'guest': None, 'payment': None, 'rating': None, 'review': None},
+    }
+}
+
+@ns.route('/rooms')
+class RoomList(Resource):
+    @ns.doc('list_rooms')
+    @ns.marshal_list_with(room_model)
+    def get(self):
+        '''List all rooms'''
+        rooms = []
+        for number, details in hotel_data['rooms'].items():
+            room = {'number': number}
+            room.update(details)
+            rooms.append(room)
+        return rooms
+
+@ns.route('/book')
+class BookRoom(Resource):
+    @ns.doc('book_room')
+    @ns.expect(booking_model)
+    @ns.marshal_with(room_model)
+    def post(self):
+        '''Book a room'''
+        data = request.json
+        room_number = data['room_number']
+        guest_name = data['guest_name']
+        
+        if room_number not in hotel_data['rooms']:
+            api.abort(404, f"Room {room_number} does not exist")
+            
+        if hotel_data['rooms'][room_number]['status'] != 'available':
+            api.abort(400, f"Room {room_number} is not available")
+            
+        hotel_data['rooms'][room_number]['status'] = 'booked'
+        hotel_data['rooms'][room_number]['guest'] = guest_name
+        hotel_data['rooms'][room_number]['payment'] = hotel_data['room_price']
+        
+        return {'number': room_number, **hotel_data['rooms'][room_number]}, 201
+
+@ns.route('/room/<string:room_number>')
+@ns.response(404, 'Room not found')
+@ns.param('room_number', 'The room identifier')
+class Room(Resource):
+    @ns.doc('get_room')
+    @ns.marshal_with(room_model)
+    def get(self, room_number):
+        '''Get room details'''
+        if room_number not in hotel_data['rooms']:
+            api.abort(404, f"Room {room_number} does not exist")
+        return {'number': room_number, **hotel_data['rooms'][room_number]}
+    
+    @ns.doc('cancel_booking')
+    @ns.marshal_with(room_model)
+    def delete(self, room_number):
+        '''Cancel a booking'''
+        if room_number not in hotel_data['rooms']:
+            api.abort(404, f"Room {room_number} does not exist")
+            
+        if hotel_data['rooms'][room_number]['status'] != 'booked':
+            api.abort(400, f"Room {room_number} has no booking to cancel")
+            
+        hotel_data['rooms'][room_number]['status'] = 'available'
+        hotel_data['rooms'][room_number]['guest'] = None
+        hotel_data['rooms'][room_number]['payment'] = None
+        
+        return {'number': room_number, **hotel_data['rooms'][room_number]}
+
+@ns.route('/checkout/<string:room_number>')
+@ns.response(404, 'Room not found')
+@ns.param('room_number', 'The room identifier')
+class Checkout(Resource):
+    @ns.doc('checkout_room')
+    @ns.expect(rating_model)
+    @ns.marshal_with(room_model)
+    def post(self, room_number):
+        '''Check out from a room'''
+        if room_number not in hotel_data['rooms']:
+            api.abort(404, f"Room {room_number} does not exist")
+            
+        if hotel_data['rooms'][room_number]['status'] != 'booked':
+            api.abort(400, f"Room {room_number} is not booked")
+            
+        data = request.json
+        rating = data.get('rating')
+        review = data.get('review', '')
+        
+        if not rating or not 1 <= rating <= 5:
+            api.abort(400, 'Rating must be between 1 and 5')
+            
+        hotel_data['rooms'][room_number]['status'] = 'available'
+        hotel_data['rooms'][room_number]['guest'] = None
+        hotel_data['rooms'][room_number]['payment'] = None
+        hotel_data['rooms'][room_number]['rating'] = rating
+        hotel_data['rooms'][room_number]['review'] = review
+        
+        return {'number': room_number, **hotel_data['rooms'][room_number]}
+
+if __name__ == '__main__':
+    app.run(debug=True)
