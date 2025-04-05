@@ -37,3 +37,13 @@ This is a simple hotel booking system project implemented in Python. The project
 - `Room` 类：表示房间，包含房间号、状态和客人信息。
 - `main` 函数：提供用户交互界面。
 
+##完整项目构架
+hotel_system/
+│
+├── app.py                # Flask API 应用
+├── models.py             # 数据库模型和Hotel类
+├── hotel_cli.py          # 命令行界面
+├── main.py               # 主入口文件
+├── requirements.txt      # 依赖文件
+└── hotel.db              # SQLite数据库文件 (运行后自动生成)
+
