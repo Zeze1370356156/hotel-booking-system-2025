@@ -47,3 +47,8 @@ hotel_system/
 ├── requirements.txt      # 依赖文件
 └── hotel.db              # SQLite数据库文件 (运行后自动生成)
 
+
+##requirements.txt 内容：
+flask
+flask-restx
+python-dotenv
