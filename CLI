@@ -1,0 +1,105 @@
+# hotel_cli.py
+import sys
+from datetime import datetime
+
+class HotelCLI:
+    def __init__(self, hotel):
+        self.hotel = hotel
+        self.current_user = None
+    
+    def display_menu(self):
+        print("\n=== Hotel Booking System ===")
+        print(f"Welcome to {self.hotel.name}")
+        if self.current_user:
+            print(f"Logged in as: {self.current_user}")
+        print("1. Display Room Status")
+        print("2. Book a Room")
+        print("3. Cancel Booking")
+        print("4. Check Out and Rate Room")
+        print("5. Register/Login")
+        print("6. Exit")
+    
+    def clear_screen(self):
+        print("\n" * 100)  # 简单的清屏方式
+    
+    def run(self):
+        self.clear_screen()
+        while True:
+            self.display_menu()
+            choice = input("Please select an option (1-6): ").strip()
+            
+            if choice == '1':
+                self.clear_screen()
+                self.hotel.display_rooms()
+            elif choice == '2':
+                self.clear_screen()
+                self.book_room_flow()
+            elif choice == '3':
+                self.clear_screen()
+                self.cancel_booking_flow()
+            elif choice == '4':
+                self.clear_screen()
+                self.check_out_flow()
+            elif choice == '5':
+                self.clear_screen()
+                self.user_auth_flow()
+            elif choice == '6':
+                print("Thank you for using our system. Goodbye!")
+                sys.exit(0)
+            else:
+                print("Invalid option, please try again.")
+    
+    def book_room_flow(self):
+        print("\n=== Book a Room ===")
+        self.hotel.display_rooms()
+        room_number = input("\nEnter room number to book: ").strip()
+        guest_name = input("Enter your name: ").strip()
+        if not guest_name:
+            print("Guest name cannot be empty!")
+            return
+        self.hotel.book_room(room_number, guest_name)
+    
+    def cancel_booking_flow(self):
+        print("\n=== Cancel Booking ===")
+        self.hotel.display_rooms()
+        room_number = input("\nEnter room number to cancel booking: ").strip()
+        self.hotel.cancel_booking(room_number)
+    
+    def check_out_flow(self):
+        print("\n=== Check Out ===")
+        self.hotel.display_rooms()
+        room_number = input("\nEnter room number to check out: ").strip()
+        self.hotel.check_out(room_number)
+    
+    def user_auth_flow(self):
+        print("\n=== User Authentication ===")
+        print("1. Register")
+        print("2. Login")
+        print("3. Back to main menu")
+        choice = input("Select option (1-3): ").strip()
+        
+        if choice == '1':
+            username = input("Enter new username: ").strip()
+            password = input("Enter password: ").strip()
+            # 这里应该调用用户注册逻辑
+            print(f"User {username} registered successfully!")
+            self.current_user = username
+        elif choice == '2':
+            username = input("Enter username: ").strip()
+            password = input("Enter password: ").strip()
+            # 这里应该调用用户登录逻辑
+            print(f"Welcome back, {username}!")
+            self.current_user = username
+        elif choice == '3':
+            return
+        else:
+            print("Invalid option!")
+
+# 修改main函数
+def main():
+    my_hotel = Hotel("Star Hotel")
+    cli = HotelCLI(my_hotel)
+    cli.run()
+
+if __name__ == "__main__":
+    main()
