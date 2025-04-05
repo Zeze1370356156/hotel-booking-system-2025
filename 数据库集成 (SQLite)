@@ -1,0 +1,212 @@
+#首先修改Hotel类以支持数据库：
+# models.py
+import sqlite3
+from datetime import datetime
+
+class Database:
+    def __init__(self, db_name='hotel.db'):
+        self.conn = sqlite3.connect(db_name)
+        self.create_tables()
+    
+    def create_tables(self):
+        cursor = self.conn.cursor()
+        
+        # 创建房间表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rooms (
+            number TEXT PRIMARY KEY,
+            status TEXT NOT NULL,
+            guest_name TEXT,
+            payment REAL,
+            rating INTEGER,
+            review TEXT,
+            booked_at TEXT,
+            checked_out_at TEXT
+        )
+        ''')
+        
+        # 创建用户表
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            email TEXT,
+            created_at TEXT NOT NULL
+        )
+        ''')
+        
+        self.conn.commit()
+    
+    def close(self):
+        self.conn.close()
+
+class Hotel:
+    def __init__(self, name, db):
+        self.name = name
+        self.room_price = 200
+        self.db = db
+        self._initialize_rooms()
+    
+    def _initialize_rooms(self):
+        cursor = self.db.conn.cursor()
+        cursor.execute("SELECT number FROM rooms")
+        existing_rooms = [row[0] for row in cursor.fetchall()]
+        
+        # 添加默认房间如果不存在
+        default_rooms = ['101', '102', '103']
+        for room in default_rooms:
+            if room not in existing_rooms:
+                cursor.execute('''
+                INSERT INTO rooms (number, status) 
+                VALUES (?, ?)
+                ''', (room, 'available'))
+        
+        self.db.conn.commit()
+    
+    def display_rooms(self):
+        cursor = self.db.conn.cursor()
+        cursor.execute('''
+        SELECT number, status, guest_name, payment, rating, review 
+        FROM rooms
+        ''')
+        
+        print(f"\n{self.name} Room Status:")
+        for row in cursor.fetchall():
+            number, status, guest, payment, rating, review = row
+            guest = guest or "None"
+            payment = f"Paid: {payment}" if payment else "Not Paid"
+            rating = f"Rating: {rating}" if rating else "No Rating"
+            review = f"Review: {review}" if review else "No Review"
+            print(f"Room {number} - Status: {status}, Guest: {guest}, {payment}, {rating}, {review}")
+    
+    def book_room(self, room_number, guest_name):
+        cursor = self.db.conn.cursor()
+        
+        # 检查房间是否存在和可用
+        cursor.execute('''
+        SELECT status FROM rooms WHERE number = ?
+        ''', (room_number,))
+        result = cursor.fetchone()
+        
+        if not result:
+            print(f"Room {room_number} does not exist.")
+            return False
+        
+        status = result[0]
+        if status != 'available':
+            print(f"Room {room_number} is not available.")
+            return False
+        
+        # 预订房间
+        cursor.execute('''
+        UPDATE rooms 
+        SET status = 'booked', 
+            guest_name = ?, 
+            payment = ?,
+            booked_at = ?
+        WHERE number = ?
+        ''', (guest_name, self.room_price, datetime.now().isoformat(), room_number))
+        
+        self.db.conn.commit()
+        print(f"Room {room_number} has been successfully booked for {guest_name}. Payment: {self.room_price}")
+        return True
+    
+    def cancel_booking(self, room_number):
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute('''
+        SELECT status, guest_name FROM rooms WHERE number = ?
+        ''', (room_number,))
+        result = cursor.fetchone()
+        
+        if not result:
+            print(f"Room {room_number} does not exist.")
+            return False
+        
+        status, guest_name = result
+        if status != 'booked':
+            print(f"Room {room_number} has no booking record.")
+            return False
+        
+        cursor.execute('''
+        UPDATE rooms 
+        SET status = 'available', 
+            guest_name = NULL, 
+            payment = NULL,
+            booked_at = NULL
+        WHERE number = ?
+        ''', (room_number,))
+        
+        self.db.conn.commit()
+        print(f"Booking for Room {room_number} has been canceled (original guest: {guest_name}).")
+        return True
+    
+    def check_out(self, room_number, rating=None, review=None):
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute('''
+        SELECT status, guest_name FROM rooms WHERE number = ?
+        ''', (room_number,))
+        result = cursor.fetchone()
+        
+        if not result:
+            print(f"Room {room_number} does not exist.")
+            return False
+        
+        status, guest_name = result
+        if status != 'booked':
+            print(f"Room {room_number} is not booked.")
+            return False
+        
+        if rating is None:
+            try:
+                rating = int(input("Please rate the room (1-5): "))
+                if rating < 1 or rating > 5:
+                    print("Rating must be between 1 and 5.")
+                    return False
+            except ValueError:
+                print("Invalid rating. Please enter a number between 1 and 5.")
+                return False
+        
+        if review is None:
+            review = input("Please leave a review (optional): ")
+        
+        cursor.execute('''
+        UPDATE rooms 
+        SET status = 'available', 
+            guest_name = NULL, 
+            payment = NULL,
+            rating = ?,
+            review = ?,
+            checked_out_at = ?
+        WHERE number = ?
+        ''', (rating, review, datetime.now().isoformat(), room_number))
+        
+        self.db.conn.commit()
+        print(f"Guest {guest_name} has checked out from Room {room_number}.")
+        print(f"Thank you for your rating: {rating} and review: {review}")
+        return True
+
+
+
+#然后更新main.py：
+# main.py
+from models import Database, Hotel
+from hotel_cli import HotelCLI
+
+def main():
+    # 初始化数据库和酒店
+    db = Database()
+    my_hotel = Hotel("Star Hotel", db)
+    
+    try:
+        # 启动CLI
+        cli = HotelCLI(my_hotel)
+        cli.run()
+    finally:
+        # 确保数据库连接关闭
+        db.close()
+
+if __name__ == "__main__":
+    main()
