@@ -1,0 +1,223 @@
+# 安装必要库
+!pip install ipywidgets
+!jupyter nbextension enable --py widgetsnbextension
+
+import ipywidgets as widgets
+from IPython.display import display, clear_output
+
+# ==================== 后端代码 ====================
+class Hotel:
+    def __init__(self, name):
+        self.name = name
+        self.room_price = 200
+        self.rooms = {
+            '101': {'status': 'available', 'guest': None, 'payment': None, 'rating': None, 'review': None},
+            '102': {'status': 'available', 'guest': None, 'payment': None, 'rating': None, 'review': None},
+            '103': {'status': 'available', 'guest': None, 'payment': None, 'rating': None, 'review': None},
+        }
+
+    def display_rooms(self):
+        status_info = []
+        for room, details in self.rooms.items():
+            status = "🟢 可用" if details['status'] == 'available' else "🔴 已预订"
+            guest = details['guest'] if details['guest'] else "无"
+            payment = f"💰 已付款: ¥{details['payment']}" if details['payment'] else "💳 未付款"
+            rating = f"⭐ 评分: {details['rating']}星" if details['rating'] else "⭐ 暂无评分"
+            review = f"📝 评价: {details['review']}" if details['review'] else "📝 暂无评价"
+            status_info.append(f"🏠 房间 {room} - {status}, 👤 客人: {guest}, {payment}, {rating}, {review}")
+        return "\n".join(status_info)
+
+    def book_room(self, room_number, guest_name):
+        if room_number not in self.rooms:
+            return (False, f"❌ 房间 {room_number} 不存在。")
+
+        if self.rooms[room_number]['status'] == 'available':
+            payment_amount = self.room_price
+            self.rooms[room_number]['status'] = 'booked'
+            self.rooms[room_number]['guest'] = guest_name
+            self.rooms[room_number]['payment'] = payment_amount
+            return (True, f"✅ 房间 {room_number} 已成功为 {guest_name} 预订。需付款: ¥{payment_amount}")
+        else:
+            return (False, f"❌ 房间 {room_number} 不可用。")
+
+    def cancel_booking(self, room_number):
+        if room_number not in self.rooms:
+            return (False, f"❌ 房间 {room_number} 不存在。")
+
+        if self.rooms[room_number]['status'] == 'booked':
+            guest_name = self.rooms[room_number]['guest']
+            self.rooms[room_number]['status'] = 'available'
+            self.rooms[room_number]['guest'] = None
+            self.rooms[room_number]['payment'] = None
+            return (True, f"✅ 房间 {room_number} 的预订已取消(原客人: {guest_name})。")
+        else:
+            return (False, f"❌ 房间 {room_number} 没有预订记录。")
+
+    def check_out(self, room_number, rating, review):
+        if room_number not in self.rooms:
+            return (False, f"❌ 房间 {room_number} 不存在。")
+
+        if self.rooms[room_number]['status'] == 'booked':
+            guest_name = self.rooms[room_number]['guest']
+            self.rooms[room_number]['status'] = 'available'
+            self.rooms[room_number]['guest'] = None
+            self.rooms[room_number]['payment'] = None
+            self.rooms[room_number]['rating'] = rating
+            self.rooms[room_number]['review'] = review
+            return (True, f"✅ 客人 {guest_name} 已从房间 {room_number} 退房。\n⭐ 评分: {rating}星\n📝 评价: {review}")
+        else:
+            return (False, f"❌ 房间 {room_number} 未被预订。")
+
+# ==================== 前端代码 ====================
+hotel = Hotel("星辰宾馆")
+
+# 创建控件
+room_dropdown = widgets.Dropdown(
+    options=list(hotel.rooms.keys()),
+    description='房间号:',
+    layout=widgets.Layout(width='300px')
+)
+
+guest_name_text = widgets.Text(
+    value='',
+    placeholder='请输入客人姓名',
+    description='客人姓名:',
+    layout=widgets.Layout(width='300px')
+)
+
+rating_slider = widgets.IntSlider(
+    value=3,
+    min=1,
+    max=5,
+    step=1,
+    description='评分(1-5):',
+    layout=widgets.Layout(width='300px')
+)
+
+review_text = widgets.Textarea(
+    value='',
+    placeholder='请输入您的评价(可选)',
+    description='评价内容:',
+    layout=widgets.Layout(width='300px', height='80px')
+)
+
+action_buttons = widgets.ToggleButtons(
+    options=['显示房间状态', '预订房间', '取消预订', '退房评价'],
+    description='操作:',
+    style={'button_width': '120px'}
+)
+
+book_button = widgets.Button(
+    description="确认预订",
+    button_style='success',
+    layout=widgets.Layout(width='150px')
+)
+
+cancel_button = widgets.Button(
+    description="确认取消",
+    button_style='warning',
+    layout=widgets.Layout(width='150px')
+)
+
+checkout_button = widgets.Button(
+    description="确认退房",
+    button_style='danger',
+    layout=widgets.Layout(width='150px')
+)
+
+output_area = widgets.Output(layout={'border': '1px solid black', 'width': '90%'})
+
+# 创建控制面板容器
+control_panel = widgets.VBox([])
+
+# 更新控制面板函数
+def update_control_panel(action):
+    children = [action_buttons, room_dropdown]
+    
+    if action == '预订房间':
+        children.extend([guest_name_text, book_button])
+    elif action == '取消预订':
+        children.append(cancel_button)
+    elif action == '退房评价':
+        children.extend([rating_slider, review_text, checkout_button])
+    
+    control_panel.children = children
+
+# 更新房间下拉框选项
+def update_room_options():
+    if action_buttons.value == '预订房间':
+        room_dropdown.options = [r for r in hotel.rooms if hotel.rooms[r]['status'] == 'available']
+    elif action_buttons.value in ['取消预订', '退房评价']:
+        room_dropdown.options = [r for r in hotel.rooms if hotel.rooms[r]['status'] == 'booked']
+    else:
+        room_dropdown.options = list(hotel.rooms.keys())
+
+# 初始状态
+update_control_panel('显示房间状态')
+update_room_options()
+
+# 操作按钮事件
+def on_action_buttons_change(change):
+    update_control_panel(change['new'])
+    update_room_options()
+    with output_area:
+        clear_output()
+        if change['new'] == '显示房间状态':
+            display_rooms()
+
+def display_rooms():
+    with output_area:
+        clear_output()
+        print(f"\n🏨 {hotel.name} 房间状态:")
+        print(hotel.display_rooms())
+
+def on_book_button_clicked(b):
+    with output_area:
+        clear_output()
+        if not guest_name_text.value.strip():
+            print("❌ 错误：请输入客人姓名！")
+            return
+            
+        success, message = hotel.book_room(room_dropdown.value, guest_name_text.value)
+        print(message)
+        if success:
+            guest_name_text.value = ''
+            update_room_options()
+            display_rooms()
+
+def on_cancel_button_clicked(b):
+    with output_area:
+        clear_output()
+        success, message = hotel.cancel_booking(room_dropdown.value)
+        print(message)
+        if success:
+            update_room_options()
+            display_rooms()
+
+def on_checkout_button_clicked(b):
+    with output_area:
+        clear_output()
+        success, message = hotel.check_out(room_dropdown.value, rating_slider.value, review_text.value)
+        print(message)
+        if success:
+            rating_slider.value = 3
+            review_text.value = ''
+            update_room_options()
+            display_rooms()
+
+# 绑定事件
+action_buttons.observe(on_action_buttons_change, names='value')
+book_button.on_click(on_book_button_clicked)
+cancel_button.on_click(on_cancel_button_clicked)
+checkout_button.on_click(on_checkout_button_clicked)
+
+# 初始显示房间状态
+display_rooms()
+
+# 显示整个界面
+display(widgets.VBox([
+    widgets.HTML("<h1 style='text-align: center;'>🏨 宾馆预订系统</h1>"),
+    widgets.HTML(f"<h3 style='text-align: center;'>{hotel.name}</h3>"),
+    control_panel,
+    output_area
+]))
