@@ -8,6 +8,8 @@ This is a simple hotel booking system project implemented in Python. The project
 2. **Book a Room**: Enter the room number and guest name to book a specific room.
 3. **Cancel Booking**: Enter the room number to cancel a booked room.
 4. **Exit System**: Terminate the program.
+5. **Rating input**： Use a slider to select a rating from 1 to 5 stars, providing an intuitive user experience.
+
 
 ## Code Structure
 
