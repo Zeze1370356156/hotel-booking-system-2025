@@ -14,7 +14,7 @@ This is a simple hotel booking system project implemented in Python. The project
 ## Code Structure
 
 - `Hotel` Class: Represents the hotel, containing a list of rooms and methods for operations.
-- `Room` Class: Represents a room, containing the room number, status, and guest information.
+- `Room` Class: Represents a room, containing the room number, status, check out and guest information.
 - `main` Function: Provides a user interaction interface.
 
 
